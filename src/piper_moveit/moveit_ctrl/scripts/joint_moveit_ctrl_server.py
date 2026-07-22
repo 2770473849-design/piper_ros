@@ -68,18 +68,38 @@ class JointMoveitCtrlServer:
     def handle_joint_moveit_ctrl_gripper(self, request):
         rospy.loginfo("Received gripper joint movement request.")
 
+        if not self.gripper_move_group:
+            rospy.logerr("Gripper move group is not initialized.")
+            return JointMoveitCtrlResponse(status=False, error_code=1)
+
         try:
-            if self.gripper_move_group:
-                gripper_goal = [request.gripper]
-                self.gripper_move_group.set_joint_value_target(gripper_goal)
-                self.gripper_move_group.go(wait=True)
-                rospy.loginfo("Gripper movement executed successfully.")
-            else:
-                rospy.logerr("Gripper move group is not initialized.")
+            # Piper 单侧夹爪行程：0～0.035 m
+            opening = max(0.0, min(0.035, request.gripper))
+
+            # 两个夹爪关节方向相反，使用关节名避免顺序歧义
+            gripper_goal = {
+                "joint7": opening,
+                "joint8": -opening,
+            }
+
+            self.gripper_move_group.set_joint_value_target(gripper_goal)
+            success = self.gripper_move_group.go(wait=True)
+            self.gripper_move_group.stop()
+
+            if not success:
+                rospy.logerr("Gripper planning or execution failed.")
+                return JointMoveitCtrlResponse(status=False, error_code=2)
+
+            rospy.loginfo(
+                "Gripper executed successfully: joint7=%.4f, joint8=%.4f",
+                opening,
+                -opening,
+            )
+            return JointMoveitCtrlResponse(status=True, error_code=0)
+
         except Exception as e:
             rospy.logerr(f"Exception during gripper movement: {str(e)}")
-
-        return JointMoveitCtrlResponse(status=True, error_code=0)
+            return JointMoveitCtrlResponse(status=False, error_code=3)
 
     def handle_joint_moveit_ctrl_piper(self, request):
         rospy.loginfo("Received piper joint movement request.")
