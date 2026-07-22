@@ -13,7 +13,8 @@
         <chain base_link="base_link" tip_link="link6"/>
     </group>
     <group name="gripper">
-        <chain base_link="gripper_base" tip_link="link7"/>
+        <joint name="joint7"/>
+        <joint name="joint8"/>
     </group>
     <group name="piper">
         <chain base_link="base_link" tip_link="link7"/>
@@ -29,9 +30,11 @@
     </group_state>
     <group_state name="close" group="gripper">
         <joint name="joint7" value="0"/>
+        <joint name="joint8" value="0"/>
     </group_state>
     <group_state name="open" group="gripper">
         <joint name="joint7" value="0.035"/>
+        <joint name="joint8" value="-0.035"/>
     </group_state>
     <group_state name="zero" group="piper">
         <joint name="joint1" value="0"/>
