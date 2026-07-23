@@ -221,5 +221,6 @@ catkin_install_python(
     scripts/grasp_pose_transform_node.py
     scripts/pregrasp_execute_node.py
     scripts/cartesian_grasp_approach_node.py
+    scripts/cartesian_grasp_and_close_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
