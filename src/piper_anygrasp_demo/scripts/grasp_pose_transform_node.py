@@ -44,7 +44,7 @@ class GraspPoseTransformer:
             self.output_topic,
             PoseStamped,
             queue_size=1,
-            latch=True,
+            latch=False,
         )
 
         self.subscriber = rospy.Subscriber(
