@@ -1,0 +1,10 @@
+--- /home/tancheng/gazebo_link_attacher_ws/src/gazebo_ros_link_attacher/src/gazebo_ros_link_attacher.cpp.bak_before_reattach_fix	2026-07-23 15:17:41.474473564 +0800
++++ /home/tancheng/gazebo_link_attacher_ws/src/gazebo_ros_link_attacher/src/gazebo_ros_link_attacher.cpp	2026-07-23 20:18:07.456003534 +0800
+@@ -57,6 +57,7 @@
+     if(this->getJoint(model1, link1, model2, link2, j)){
+         ROS_INFO_STREAM("Joint already existed, reusing it.");
+         j.joint->Attach(j.l1, j.l2);
++        j.joint->Load(j.l1, j.l2, ignition::math::Pose3d());
+         return true;
+     }
+     else{

@@ -10,14 +10,20 @@ from gazebo_msgs.srv import (
     DeleteModelRequest,
     SpawnModel,
     SpawnModelRequest,
+    GetWorldProperties,
+    SetModelState,
+    SetModelStateRequest,
 )
 from geometry_msgs.msg import Pose, PoseStamped
+from gazebo_msgs.msg import ModelState
 
 
 MODEL_NAME = "anygrasp_test_cube"
 
 GAZEBO_SPAWN_SERVICE = "/gazebo/spawn_sdf_model"
 GAZEBO_DELETE_SERVICE = "/gazebo/delete_model"
+GAZEBO_WORLD_PROPERTIES_SERVICE = "/gazebo/get_world_properties"
+GAZEBO_SET_MODEL_STATE_SERVICE = "/gazebo/set_model_state"
 
 CUBE_SIZE = 0.03
 CUBE_MASS = 0.05
@@ -107,14 +113,15 @@ def main():
     )
 
     try:
-        rospy.wait_for_service(
+        for service_name in [
             GAZEBO_SPAWN_SERVICE,
-            timeout=10.0,
-        )
-        rospy.wait_for_service(
-            GAZEBO_DELETE_SERVICE,
-            timeout=10.0,
-        )
+            GAZEBO_WORLD_PROPERTIES_SERVICE,
+            GAZEBO_SET_MODEL_STATE_SERVICE,
+        ]:
+            rospy.wait_for_service(
+                service_name,
+                timeout=10.0,
+            )
     except rospy.ROSException as error:
         rospy.logerr(
             "Gazebo model service unavailable: %s",
@@ -127,19 +134,15 @@ def main():
         SpawnModel,
     )
 
-    delete_model = rospy.ServiceProxy(
-        GAZEBO_DELETE_SERVICE,
-        DeleteModel,
+    get_world_properties = rospy.ServiceProxy(
+        GAZEBO_WORLD_PROPERTIES_SERVICE,
+        GetWorldProperties,
     )
 
-    # 若同名方块已存在，先删除。
-    try:
-        delete_request = DeleteModelRequest()
-        delete_request.model_name = MODEL_NAME
-        delete_model(delete_request)
-        rospy.sleep(0.3)
-    except rospy.ServiceException:
-        pass
+    set_model_state = rospy.ServiceProxy(
+        GAZEBO_SET_MODEL_STATE_SERVICE,
+        SetModelState,
+    )
 
     gazebo_pose = Pose()
     gazebo_pose.position.x = cube_x
@@ -147,42 +150,89 @@ def main():
     gazebo_pose.position.z = cube_z
     gazebo_pose.orientation.w = 1.0
 
-    spawn_request = SpawnModelRequest()
-    spawn_request.model_name = MODEL_NAME
-    spawn_request.model_xml = make_cube_sdf()
-    spawn_request.robot_namespace = ""
-    spawn_request.initial_pose = gazebo_pose
-    spawn_request.reference_frame = "world"
-
-    rospy.loginfo(
-        "Spawning Gazebo cube at world: "
-        "[%.4f, %.4f, %.4f]",
-        cube_x,
-        cube_y,
-        cube_z,
-    )
-
     try:
-        spawn_response = spawn_model(
-            spawn_request
-        )
+        world_properties = get_world_properties()
     except rospy.ServiceException as error:
         rospy.logerr(
-            "Gazebo spawn service failed: %s",
+            "Failed to query Gazebo world: %s",
             str(error),
         )
         return
 
-    if not spawn_response.success:
-        rospy.logerr(
-            "Gazebo rejected cube: %s",
-            spawn_response.status_message,
+    if MODEL_NAME in world_properties.model_names:
+        rospy.loginfo(
+            "Gazebo cube already exists; resetting pose "
+            "instead of deleting and respawning."
         )
-        return
 
-    rospy.loginfo(
-        "Gazebo cube spawned successfully."
-    )
+        model_state = ModelState()
+        model_state.model_name = MODEL_NAME
+        model_state.pose = gazebo_pose
+        model_state.reference_frame = "world"
+
+        reset_request = SetModelStateRequest()
+        reset_request.model_state = model_state
+
+        try:
+            reset_response = set_model_state(
+                reset_request
+            )
+        except rospy.ServiceException as error:
+            rospy.logerr(
+                "Gazebo cube reset service failed: %s",
+                str(error),
+            )
+            return
+
+        if not reset_response.success:
+            rospy.logerr(
+                "Gazebo rejected cube reset: %s",
+                reset_response.status_message,
+            )
+            return
+
+        rospy.loginfo(
+            "Gazebo cube reset successfully."
+        )
+    else:
+        spawn_request = SpawnModelRequest()
+        spawn_request.model_name = MODEL_NAME
+        spawn_request.model_xml = make_cube_sdf()
+        spawn_request.robot_namespace = ""
+        spawn_request.initial_pose = gazebo_pose
+        spawn_request.reference_frame = "world"
+
+        rospy.loginfo(
+            "Spawning Gazebo cube at world: "
+            "[%.4f, %.4f, %.4f]",
+            cube_x,
+            cube_y,
+            cube_z,
+        )
+
+        try:
+            spawn_response = spawn_model(
+                spawn_request
+            )
+        except rospy.ServiceException as error:
+            rospy.logerr(
+                "Gazebo spawn service failed: %s",
+                str(error),
+            )
+            return
+
+        if not spawn_response.success:
+            rospy.logerr(
+                "Gazebo rejected cube: %s",
+                spawn_response.status_message,
+            )
+            return
+
+        rospy.loginfo(
+            "Gazebo cube spawned successfully."
+        )
+
+    rospy.sleep(0.5)
 
     # 在 MoveIt Planning Scene 中加入同位置碰撞方块。
     scene = moveit_commander.PlanningSceneInterface(
