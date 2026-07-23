@@ -6,6 +6,8 @@ import sys
 
 import rospy
 import moveit_commander
+import tf2_ros
+import tf2_geometry_msgs
 
 from geometry_msgs.msg import Pose, PoseStamped
 
@@ -187,6 +189,14 @@ class GazeboPickPlace:
 
         self.end_effector_link = (
             self.arm.get_end_effector_link()
+        )
+
+        self.tf_buffer = tf2_ros.Buffer(
+            cache_time=rospy.Duration(10.0)
+        )
+
+        self.tf_listener = tf2_ros.TransformListener(
+            self.tf_buffer
         )
 
         rospy.loginfo(
@@ -723,12 +733,42 @@ class GazeboPickPlace:
         received_frame = message.header.frame_id.lstrip("/")
         expected_frame = self.planning_frame.lstrip("/")
 
-        if received_frame != expected_frame:
+        if not received_frame:
             raise RuntimeError(
-                "Grasp pose frame is '{}', expected '{}'.".format(
-                    message.header.frame_id,
+                "Received grasp pose has an empty frame_id."
+            )
+
+        if received_frame != expected_frame:
+            source_frame = message.header.frame_id
+
+            rospy.loginfo(
+                "Transforming grasp pose from %s to %s...",
+                source_frame,
+                self.planning_frame,
+            )
+
+            try:
+                message = self.tf_buffer.transform(
+                    message,
                     self.planning_frame,
+                    rospy.Duration(2.0),
                 )
+            except (
+                tf2_ros.LookupException,
+                tf2_ros.ConnectivityException,
+                tf2_ros.ExtrapolationException,
+            ) as error:
+                raise RuntimeError(
+                    "Failed to transform grasp pose "
+                    "from '{}' to '{}': {}".format(
+                        source_frame,
+                        self.planning_frame,
+                        str(error),
+                    )
+                )
+
+            rospy.loginfo(
+                "Grasp pose TF transform completed."
             )
 
         self.grasp_tcp_position = [
