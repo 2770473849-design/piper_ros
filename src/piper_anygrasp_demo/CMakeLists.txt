@@ -8,6 +8,7 @@ project(piper_anygrasp_demo)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  gazebo_ros_link_attacher
   gazebo_msgs
   tf2_geometry_msgs
   tf2_ros
@@ -227,6 +228,7 @@ catkin_install_python(
     scripts/full_grasp_sequence_node.py
     scripts/spawn_test_cube_node.py
     scripts/tcp_to_link6_pose_node.py
+    scripts/gazebo_pick_place_node.py
     scripts/cartesian_grasp_retreat_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
