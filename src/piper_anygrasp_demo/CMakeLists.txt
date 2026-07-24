@@ -230,6 +230,7 @@ catkin_install_python(
     scripts/tcp_to_link6_pose_node.py
     scripts/gazebo_pick_place_node.py
     scripts/gazebo_pick_place_from_topic_node.py
+    scripts/pointcloud_grasp_pose_publisher.py
     scripts/cartesian_grasp_retreat_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

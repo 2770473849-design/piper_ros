@@ -4,9 +4,8 @@
 
   <include
     file="$(find piper_gazebo)/launch/piper_with_gripper/piper_gazebo_controller.launch"/>
-  <!-- Publish robot and camera TF from Gazebo joint states -->
-  <node name="piper_rgbd_robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen">
-    <remap from="joint_states" to="/gazebo/joint_states"/>
-  </node>
+  <!-- Fixed overhead RGB-D camera TF; MoveIt publishes the robot TF tree. -->
+  <node name="hand_camera_base_tf" pkg="tf" type="static_transform_publisher" args="0.25 0 0.55 0 1.5708 0 base_link hand_camera_link 100"/>
+  <node name="hand_camera_optical_tf" pkg="tf" type="static_transform_publisher" args="0 0 0 -1.5708 0 -1.5708 hand_camera_link hand_camera_optical_frame 100"/>
 
 </launch>

@@ -146,7 +146,7 @@ class GazeboPickPlace:
         self.gripper_close = float(
             rospy.get_param(
                 "~gripper_close",
-                0.0151,
+                0.0170,
             )
         )
 
