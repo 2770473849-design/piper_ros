@@ -1,0 +1,12 @@
+<launch>
+  <include
+    file="$(find piper_gazebo)/launch/piper_with_gripper/piper_world_rgbd_with_attacher.launch"/>
+
+  <include
+    file="$(find piper_gazebo)/launch/piper_with_gripper/piper_gazebo_controller.launch"/>
+  <!-- Publish robot and camera TF from Gazebo joint states -->
+  <node name="piper_rgbd_robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen">
+    <remap from="joint_states" to="/gazebo/joint_states"/>
+  </node>
+
+</launch>
