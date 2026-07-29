@@ -169,9 +169,9 @@ class MockGraspCandidatesPublisher:
             self.make_candidate(
                 candidate_id=3,
                 position=(
-                    self.tcp_x - 0.003,
-                    self.tcp_y + 0.012,
-                    self.tcp_z + 0.001,
+                    self.tcp_x,
+                    self.tcp_y,
+                    self.tcp_z,
                 ),
                 orientation=top_down_orientation,
                 score=0.88,

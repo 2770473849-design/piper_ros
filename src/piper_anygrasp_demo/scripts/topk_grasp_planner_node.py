@@ -63,6 +63,21 @@ class TopKGraspPlanner:
             rospy.get_param("~acceleration", 0.03)
         )
 
+        self.eef_step = float(
+            rospy.get_param("~eef_step", 0.001)
+        )
+
+        self.jump_threshold = float(
+            rospy.get_param("~jump_threshold", 0.0)
+        )
+
+        self.min_cartesian_fraction = float(
+            rospy.get_param(
+                "~min_cartesian_fraction",
+                0.999,
+            )
+        )
+
         self.tf_timeout = float(
             rospy.get_param("~tf_timeout", 2.0)
         )
@@ -364,6 +379,100 @@ class TopKGraspPlanner:
 
         return self.parse_plan_result(result)
 
+    def build_trajectory_end_state(
+        self,
+        trajectory,
+    ):
+        """
+        将预抓取规划轨迹的最后一个点转换为 RobotState。
+
+        Cartesian path 必须从预抓取终点开始计算，
+        而不能直接从机械臂当前真实状态开始计算。
+        """
+        joint_trajectory = (
+            trajectory.joint_trajectory
+        )
+
+        if not joint_trajectory.points:
+            raise RuntimeError(
+                "Pregrasp trajectory contains no points."
+            )
+
+        final_point = joint_trajectory.points[-1]
+
+        trajectory_positions = dict(
+            zip(
+                joint_trajectory.joint_names,
+                final_point.positions,
+            )
+        )
+
+        start_state = (
+            self.robot.get_current_state()
+        )
+
+        state_positions = list(
+            start_state.joint_state.position
+        )
+
+        for index, joint_name in enumerate(
+            start_state.joint_state.name
+        ):
+            if joint_name in trajectory_positions:
+                state_positions[index] = (
+                    trajectory_positions[joint_name]
+                )
+
+        start_state.joint_state.position = (
+            state_positions
+        )
+        start_state.is_diff = True
+
+        return start_state
+
+    def check_cartesian_approach(
+        self,
+        pregrasp_trajectory,
+        grasp_link6,
+    ):
+        """
+        不执行轨迹，仅检查：
+        预抓取轨迹终点 → 抓取位姿
+        是否存在完整笛卡尔直线路径。
+        """
+        start_state = (
+            self.build_trajectory_end_state(
+                pregrasp_trajectory
+            )
+        )
+
+        self.arm.set_start_state(start_state)
+
+        try:
+            (
+                cartesian_plan,
+                fraction,
+            ) = self.arm.compute_cartesian_path(
+                [grasp_link6],
+                self.eef_step,
+                avoid_collisions=True,
+            )
+
+        finally:
+            self.arm.set_start_state_to_current_state()
+
+        trajectory_points = len(
+            cartesian_plan.joint_trajectory.points
+        )
+
+        return (
+            cartesian_plan,
+            float(fraction),
+            trajectory_points,
+        )
+
+
+
     def process_candidates(self, message):
         source_frame = message.header.frame_id.strip()
 
@@ -428,6 +537,12 @@ class TopKGraspPlanner:
                     )
                 )
 
+                grasp_link6 = (
+                    self.tcp_pose_to_link6_pose(
+                        grasp_tcp
+                    )
+                )
+
             except (
                 ValueError,
                 tf2_ros.LookupException,
@@ -474,7 +589,7 @@ class TopKGraspPlanner:
             try:
                 (
                     success,
-                    _trajectory,
+                    pregrasp_trajectory,
                     trajectory_points,
                     error_code,
                 ) = self.plan_pregrasp(
@@ -504,6 +619,59 @@ class TopKGraspPlanner:
                 "%d trajectory points.",
                 candidate.id,
                 trajectory_points,
+            )
+
+            rospy.loginfo(
+                "Candidate %d: checking Cartesian "
+                "approach feasibility...",
+                candidate.id,
+            )
+
+            try:
+                (
+                    _cartesian_plan,
+                    cartesian_fraction,
+                    cartesian_points,
+                ) = self.check_cartesian_approach(
+                    pregrasp_trajectory,
+                    grasp_link6,
+                )
+
+            except Exception as error:
+                rospy.logwarn(
+                    "Candidate %d Cartesian check raised: %s",
+                    candidate.id,
+                    error,
+                )
+                continue
+
+            rospy.loginfo(
+                "Candidate %d Cartesian approach: "
+                "fraction=%.3f, trajectory_points=%d",
+                candidate.id,
+                cartesian_fraction,
+                cartesian_points,
+            )
+
+            if (
+                cartesian_fraction
+                < self.min_cartesian_fraction
+                or cartesian_points == 0
+            ):
+                rospy.logwarn(
+                    "Candidate %d rejected: Cartesian "
+                    "approach incomplete, fraction=%.3f "
+                    "< %.3f.",
+                    candidate.id,
+                    cartesian_fraction,
+                    self.min_cartesian_fraction,
+                )
+                continue
+
+            rospy.loginfo(
+                "Candidate %d passed both pregrasp "
+                "and Cartesian approach checks.",
+                candidate.id,
             )
 
             # 发布经过 TF 转换、并且已通过规划检查的抓取 TCP。
