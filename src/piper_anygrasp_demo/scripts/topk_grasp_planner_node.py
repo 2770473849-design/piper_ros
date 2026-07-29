@@ -15,7 +15,10 @@ from geometry_msgs.msg import Pose, PoseStamped
 from std_msgs.msg import UInt32
 from tf.transformations import quaternion_matrix
 
-from piper_anygrasp_demo.msg import GraspCandidateArray
+from piper_anygrasp_demo.msg import (
+    GraspCandidate,
+    GraspCandidateArray,
+)
 
 
 class TopKGraspPlanner:
@@ -33,6 +36,11 @@ class TopKGraspPlanner:
         self.output_id_topic = rospy.get_param(
             "~output_id_topic",
             "/selected_grasp_candidate_id",
+        )
+
+        self.output_candidate_topic = rospy.get_param(
+            "~output_candidate_topic",
+            "/planned_grasp_candidate",
         )
 
         self.arm_group = rospy.get_param(
@@ -131,6 +139,13 @@ class TopKGraspPlanner:
         self.id_publisher = rospy.Publisher(
             self.output_id_topic,
             UInt32,
+            queue_size=1,
+            latch=True,
+        )
+
+        self.candidate_publisher = rospy.Publisher(
+            self.output_candidate_topic,
+            GraspCandidateArray,
             queue_size=1,
             latch=True,
         )
@@ -689,6 +704,31 @@ class TopKGraspPlanner:
                 UInt32(data=candidate.id)
             )
 
+            selected_candidate = GraspCandidate()
+            selected_candidate.id = candidate.id
+            selected_candidate.pose = grasp_tcp.pose
+            selected_candidate.score = candidate.score
+            selected_candidate.width = candidate.width
+            selected_candidate.height = candidate.height
+            selected_candidate.depth = candidate.depth
+
+            selected_candidate_message = (
+                GraspCandidateArray()
+            )
+            selected_candidate_message.header.stamp = (
+                rospy.Time.now()
+            )
+            selected_candidate_message.header.frame_id = (
+                self.planning_frame
+            )
+            selected_candidate_message.candidates = [
+                selected_candidate
+            ]
+
+            self.candidate_publisher.publish(
+                selected_candidate_message
+            )
+
             rospy.loginfo(
                 "Selected executable Candidate %d.",
                 candidate.id,
@@ -696,6 +736,14 @@ class TopKGraspPlanner:
             rospy.loginfo(
                 "Published selected pose on %s.",
                 self.output_pose_topic,
+            )
+            rospy.loginfo(
+                "Published selected Candidate %d on %s: "
+                "score=%.3f, width=%.4f m.",
+                candidate.id,
+                self.output_candidate_topic,
+                candidate.score,
+                candidate.width,
             )
             rospy.loginfo(
                 "No robot trajectory was executed."

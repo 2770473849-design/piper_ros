@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_geometry_msgs
   tf2_ros
   geometry_msgs
+  visualization_msgs
   moveit_commander
   moveit_ctrl
   rospy
@@ -237,6 +238,7 @@ catkin_install_python(
     scripts/mock_grasp_candidates_publisher.py
     scripts/grasp_candidate_filter_node.py
     scripts/topk_grasp_planner_node.py
+    scripts/grasp_candidate_marker_node.py
     scripts/cartesian_grasp_retreat_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

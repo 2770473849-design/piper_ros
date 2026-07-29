@@ -92,6 +92,15 @@ class MockGraspCandidatesPublisher:
             0.0,
         )
 
+        # 仅用于 RViz 可视化对比：
+        # 保持局部 +Z 竖直向下，同时绕 base_link Z 轴旋转 20°。
+        yaw_5deg_top_down_orientation = (
+            -0.043619,
+            0.999048,
+            0.0,
+            0.0,
+        )
+
         wrong_orientation = (
             0.0,
             0.0,
@@ -164,7 +173,8 @@ class MockGraspCandidatesPublisher:
         )
 
         # Candidate 3:
-        # 略微偏移的备用合法候选。
+        # 与 Candidate 2 使用同一抓取中心，
+        # 但夹爪绕竖直轴旋转 5°，作为不同几何的备用抓取。
         message.candidates.append(
             self.make_candidate(
                 candidate_id=3,
@@ -173,7 +183,7 @@ class MockGraspCandidatesPublisher:
                     self.tcp_y,
                     self.tcp_z,
                 ),
-                orientation=top_down_orientation,
+                orientation=yaw_5deg_top_down_orientation,
                 score=0.88,
                 width=0.036,
             )

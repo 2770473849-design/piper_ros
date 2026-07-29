@@ -11,6 +11,8 @@ import tf2_geometry_msgs
 
 from geometry_msgs.msg import Pose, PoseStamped
 
+from piper_anygrasp_demo.msg import GraspCandidateArray
+
 from moveit_ctrl.srv import (
     JointMoveitCtrl,
     JointMoveitCtrlRequest,
@@ -93,6 +95,13 @@ class GazeboPickPlace:
             "/grasp_tcp_pose",
         )
 
+        # 非空时优先从完整候选消息读取：
+        # pose + id + score + width + height + depth。
+        self.grasp_candidate_topic = rospy.get_param(
+            "~grasp_candidate_topic",
+            "",
+        ).strip()
+
         self.grasp_pose_timeout = float(
             rospy.get_param(
                 "~grasp_pose_timeout",
@@ -147,6 +156,45 @@ class GazeboPickPlace:
             rospy.get_param(
                 "~gripper_close",
                 0.0170,
+            )
+        )
+
+        # 候选 width 是两根手指之间的总开口宽度。
+        # 服务中的 opening 是单侧关节目标。
+        self.gripper_close_margin = float(
+            rospy.get_param(
+                "~gripper_close_margin",
+                0.0005,
+            )
+        )
+
+        self.gripper_open_margin = float(
+            rospy.get_param(
+                "~gripper_open_margin",
+                0.0025,
+            )
+        )
+
+        # Piper 仿真夹爪单侧关节范围约为 0～0.035 m，
+        # 稍微避开极限位置。
+        self.gripper_target_min = float(
+            rospy.get_param(
+                "~gripper_target_min",
+                0.0010,
+            )
+        )
+
+        self.gripper_target_max = float(
+            rospy.get_param(
+                "~gripper_target_max",
+                0.0340,
+            )
+        )
+
+        self.gripper_min_open_close_gap = float(
+            rospy.get_param(
+                "~gripper_min_open_close_gap",
+                0.0010,
             )
         )
 
@@ -711,27 +759,167 @@ class GazeboPickPlace:
 
         return pose
 
-    def wait_for_grasp_pose(self):
-        rospy.loginfo(
-            "Waiting for grasp TCP pose on topic: %s",
-            self.grasp_pose_topic,
+    def configure_gripper_from_candidate_width(
+        self,
+        candidate_width,
+    ):
+        if (
+            not math.isfinite(candidate_width)
+            or candidate_width <= 0.0
+        ):
+            raise RuntimeError(
+                "Candidate width must be a positive finite value."
+            )
+
+        half_width = 0.5 * candidate_width
+
+        calculated_close = (
+            half_width
+            - self.gripper_close_margin
         )
 
-        try:
-            message = rospy.wait_for_message(
-                self.grasp_pose_topic,
-                PoseStamped,
-                timeout=self.grasp_pose_timeout,
-            )
-        except rospy.ROSException:
+        calculated_open = (
+            half_width
+            + self.gripper_open_margin
+        )
+
+        # 保留原 gripper_open 作为最低张开目标，
+        # 防止候选较窄时夹爪张开不足。
+        calculated_open = max(
+            calculated_open,
+            self.gripper_open,
+        )
+
+        calculated_close = min(
+            max(
+                calculated_close,
+                self.gripper_target_min,
+            ),
+            self.gripper_target_max,
+        )
+
+        calculated_open = min(
+            max(
+                calculated_open,
+                self.gripper_target_min,
+            ),
+            self.gripper_target_max,
+        )
+
+        if (
+            calculated_open
+            - calculated_close
+            < self.gripper_min_open_close_gap
+        ):
             raise RuntimeError(
-                "Timed out waiting for grasp pose on '{}'.".format(
-                    self.grasp_pose_topic
+                "Candidate width {:.4f} m produces invalid "
+                "gripper targets: open={:.4f}, close={:.4f}.".format(
+                    candidate_width,
+                    calculated_open,
+                    calculated_close,
                 )
             )
 
-        received_frame = message.header.frame_id.lstrip("/")
-        expected_frame = self.planning_frame.lstrip("/")
+        self.gripper_open = calculated_open
+        self.gripper_close = calculated_close
+
+        rospy.loginfo(
+            "Candidate width %.4f m -> "
+            "gripper open %.4f m, close %.4f m",
+            candidate_width,
+            self.gripper_open,
+            self.gripper_close,
+        )
+
+    def wait_for_grasp_pose(self):
+        if self.grasp_candidate_topic:
+            rospy.loginfo(
+                "Waiting for planned grasp candidate on topic: %s",
+                self.grasp_candidate_topic,
+            )
+
+            try:
+                candidate_message = rospy.wait_for_message(
+                    self.grasp_candidate_topic,
+                    GraspCandidateArray,
+                    timeout=self.grasp_pose_timeout,
+                )
+
+            except rospy.ROSException:
+                raise RuntimeError(
+                    "Timed out waiting for grasp candidate "
+                    "on '{}'.".format(
+                        self.grasp_candidate_topic
+                    )
+                )
+
+            if len(candidate_message.candidates) != 1:
+                raise RuntimeError(
+                    "Expected exactly one planned grasp candidate, "
+                    "but received {}.".format(
+                        len(candidate_message.candidates)
+                    )
+                )
+
+            candidate = candidate_message.candidates[0]
+
+            message = PoseStamped()
+            message.header = copy.deepcopy(
+                candidate_message.header
+            )
+            message.pose = copy.deepcopy(
+                candidate.pose
+            )
+
+            rospy.loginfo(
+                "Received planned Candidate %d: "
+                "score=%.3f, width=%.4f m, "
+                "height=%.4f m, depth=%.4f m",
+                candidate.id,
+                candidate.score,
+                candidate.width,
+                candidate.height,
+                candidate.depth,
+            )
+
+            self.configure_gripper_from_candidate_width(
+                candidate.width
+            )
+
+        else:
+            rospy.loginfo(
+                "Waiting for grasp TCP pose on topic: %s",
+                self.grasp_pose_topic,
+            )
+
+            try:
+                message = rospy.wait_for_message(
+                    self.grasp_pose_topic,
+                    PoseStamped,
+                    timeout=self.grasp_pose_timeout,
+                )
+
+            except rospy.ROSException:
+                raise RuntimeError(
+                    "Timed out waiting for grasp pose "
+                    "on '{}'.".format(
+                        self.grasp_pose_topic
+                    )
+                )
+
+            rospy.loginfo(
+                "Using legacy PoseStamped input; "
+                "gripper open=%.4f m, close=%.4f m.",
+                self.gripper_open,
+                self.gripper_close,
+            )
+
+        received_frame = (
+            message.header.frame_id.lstrip("/")
+        )
+        expected_frame = (
+            self.planning_frame.lstrip("/")
+        )
 
         if not received_frame:
             raise RuntimeError(
@@ -753,6 +941,7 @@ class GazeboPickPlace:
                     self.planning_frame,
                     rospy.Duration(2.0),
                 )
+
             except (
                 tf2_ros.LookupException,
                 tf2_ros.ConnectivityException,
@@ -777,24 +966,28 @@ class GazeboPickPlace:
             message.pose.position.z,
         ]
 
-        self.grasp_orientation = self.normalize_quaternion(
-            [
-                message.pose.orientation.x,
-                message.pose.orientation.y,
-                message.pose.orientation.z,
-                message.pose.orientation.w,
-            ]
+        self.grasp_orientation = (
+            self.normalize_quaternion(
+                [
+                    message.pose.orientation.x,
+                    message.pose.orientation.y,
+                    message.pose.orientation.z,
+                    message.pose.orientation.w,
+                ]
+            )
         )
 
         rospy.loginfo(
-            "Received grasp TCP position: [%.4f, %.4f, %.4f]",
+            "Received grasp TCP position: "
+            "[%.4f, %.4f, %.4f]",
             self.grasp_tcp_position[0],
             self.grasp_tcp_position[1],
             self.grasp_tcp_position[2],
         )
 
         rospy.loginfo(
-            "Received grasp orientation: [%.4f, %.4f, %.4f, %.4f]",
+            "Received grasp orientation: "
+            "[%.4f, %.4f, %.4f, %.4f]",
             self.grasp_orientation[0],
             self.grasp_orientation[1],
             self.grasp_orientation[2],
