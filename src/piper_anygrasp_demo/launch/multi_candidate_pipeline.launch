@@ -1,0 +1,167 @@
+<?xml version="1.0"?>
+
+<launch>
+  <!-- ================================================== -->
+  <!-- Multi-candidate grasp pipeline                      -->
+  <!-- ================================================== -->
+
+  <!-- 候选来源：当前为模拟发布器，将来可关闭并接入AnyGrasp。 -->
+  <arg name="use_mock_candidates" default="true"/>
+
+  <!-- 是否在RViz中显示候选坐标轴。 -->
+  <arg name="enable_markers" default="true"/>
+
+  <!-- 是否自动执行最终候选的完整抓放。 -->
+  <arg name="auto_execute" default="false"/>
+
+  <!--
+    -1：不注入故障，正常从最高分候选开始。
+     2：强制Candidate 2失败，用于验证自动回退到Candidate 3。
+  -->
+  <arg name="forced_failure_id" default="-1"/>
+
+  <arg name="top_k" default="5"/>
+  <arg name="min_cartesian_fraction" default="0.999"/>
+
+  <!-- 统一话题名称。 -->
+  <arg name="candidate_topic"
+       default="/grasp_candidates"/>
+
+  <arg name="filtered_topic"
+       default="/filtered_grasp_candidates"/>
+
+  <arg name="planned_pose_topic"
+       default="/planned_grasp_tcp_pose"/>
+
+  <arg name="planned_candidate_topic"
+       default="/planned_grasp_candidate"/>
+
+  <arg name="selected_id_topic"
+       default="/selected_grasp_candidate_id"/>
+
+  <arg name="marker_topic"
+       default="/grasp_candidate_markers"/>
+
+
+  <!-- ================================================== -->
+  <!-- 1. 模拟多候选发布器                                 -->
+  <!-- ================================================== -->
+
+  <node if="$(arg use_mock_candidates)"
+        pkg="piper_anygrasp_demo"
+        type="mock_grasp_candidates_publisher.py"
+        name="mock_grasp_candidates_publisher"
+        output="screen">
+
+    <param name="output_topic"
+           value="$(arg candidate_topic)"/>
+
+    <param name="frame_id"
+           value="base_link"/>
+  </node>
+
+
+  <!-- ================================================== -->
+  <!-- 2. 几何规则筛选与分数排序                           -->
+  <!-- ================================================== -->
+
+  <node pkg="piper_anygrasp_demo"
+        type="grasp_candidate_filter_node.py"
+        name="grasp_candidate_filter"
+        output="screen">
+
+    <param name="input_topic"
+           value="$(arg candidate_topic)"/>
+
+    <param name="filtered_topic"
+           value="$(arg filtered_topic)"/>
+
+    <!-- 避免与Top-K规划器的最终输出发生话题冲突。 -->
+    <param name="selected_pose_topic"
+           value="/rule_only_grasp_tcp_pose"/>
+
+    <param name="target_frame"
+           value="base_link"/>
+
+    <param name="top_k"
+           value="$(arg top_k)"/>
+  </node>
+
+
+  <!-- ================================================== -->
+  <!-- 3. Top-K MoveIt预抓取和Cartesian接近检查            -->
+  <!-- ================================================== -->
+
+  <node pkg="piper_anygrasp_demo"
+        type="topk_grasp_planner_node.py"
+        name="topk_grasp_planner"
+        output="screen">
+
+    <param name="input_topic"
+           value="$(arg filtered_topic)"/>
+
+    <param name="output_pose_topic"
+           value="$(arg planned_pose_topic)"/>
+
+    <param name="output_candidate_topic"
+           value="$(arg planned_candidate_topic)"/>
+
+    <param name="output_id_topic"
+           value="$(arg selected_id_topic)"/>
+
+    <param name="forced_failure_id"
+           value="$(arg forced_failure_id)"/>
+
+    <param name="min_cartesian_fraction"
+           value="$(arg min_cartesian_fraction)"/>
+
+    <param name="planning_time"
+           value="5.0"/>
+
+    <param name="planning_attempts"
+           value="5"/>
+
+    <param name="eef_step"
+           value="0.001"/>
+  </node>
+
+
+  <!-- ================================================== -->
+  <!-- 4. RViz候选Marker可视化                             -->
+  <!-- ================================================== -->
+
+  <node if="$(arg enable_markers)"
+        pkg="piper_anygrasp_demo"
+        type="grasp_candidate_marker_node.py"
+        name="grasp_candidate_marker"
+        output="screen">
+
+    <param name="input_topic"
+           value="$(arg filtered_topic)"/>
+
+    <param name="output_topic"
+           value="$(arg marker_topic)"/>
+
+    <param name="axis_length"
+           value="0.045"/>
+  </node>
+
+
+  <!-- ================================================== -->
+  <!-- 5. 可选：最终候选驱动完整抓放                       -->
+  <!-- ================================================== -->
+
+  <node if="$(arg auto_execute)"
+        pkg="piper_anygrasp_demo"
+        type="gazebo_pick_place_from_topic_node.py"
+        name="multi_candidate_pick_place_executor"
+        output="screen">
+
+    <param name="grasp_candidate_topic"
+           value="$(arg planned_candidate_topic)"/>
+
+    <param name="grasp_pose_timeout"
+           value="120.0"/>
+  </node>
+
+</launch>
