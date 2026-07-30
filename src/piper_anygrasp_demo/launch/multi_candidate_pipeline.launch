@@ -5,8 +5,13 @@
   <!-- Multi-candidate grasp pipeline                      -->
   <!-- ================================================== -->
 
-  <!-- true使用模拟候选；false使用真实AnyGrasp离线推理结果。 -->
-  <arg name="use_mock_candidates" default="false"/>
+  <!--
+    候选来源：
+      mock    = 模拟候选发布器
+      offline = 已保存的AnyGrasp推理结果
+      external = 外部节点发布候选，例如在线AnyGrasp节点
+  -->
+  <arg name="candidate_source" default="offline"/>
 
   <!-- 是否在RViz中显示候选坐标轴。 -->
   <arg name="enable_markers" default="true"/>
@@ -58,7 +63,7 @@
   <!-- 1. 模拟多候选发布器                                 -->
   <!-- ================================================== -->
 
-  <node if="$(arg use_mock_candidates)"
+  <node if="$(eval arg('candidate_source') == 'mock')"
         pkg="piper_anygrasp_demo"
         type="mock_grasp_candidates_publisher.py"
         name="mock_grasp_candidates_publisher"
@@ -76,7 +81,7 @@
   <!-- 1B. 真实AnyGrasp离线候选发布器                      -->
   <!-- ================================================== -->
 
-  <node unless="$(arg use_mock_candidates)"
+  <node if="$(eval arg('candidate_source') == 'offline')"
         pkg="piper_anygrasp_demo"
         type="anygrasp_offline_candidate_publisher.py"
         name="offline_anygrasp_candidate_publisher"

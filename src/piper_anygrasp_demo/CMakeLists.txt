@@ -245,6 +245,7 @@ catkin_install_python(
     scripts/anygrasp_pose_adapter_test_node.py
     scripts/anygrasp_tcp_alignment_inspect_node.py
     scripts/anygrasp_offline_candidate_publisher.py
+    scripts/anygrasp_online_inference_node.py
     scripts/allow_target_touch_once.py
     scripts/cartesian_grasp_retreat_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
