@@ -5,14 +5,14 @@
   <!-- Multi-candidate grasp pipeline                      -->
   <!-- ================================================== -->
 
-  <!-- 候选来源：当前为模拟发布器，将来可关闭并接入AnyGrasp。 -->
-  <arg name="use_mock_candidates" default="true"/>
+  <!-- true使用模拟候选；false使用真实AnyGrasp离线推理结果。 -->
+  <arg name="use_mock_candidates" default="false"/>
 
   <!-- 是否在RViz中显示候选坐标轴。 -->
   <arg name="enable_markers" default="true"/>
 
   <!-- 是否自动执行最终候选的完整抓放。 -->
-  <arg name="auto_execute" default="false"/>
+  <arg name="auto_execute" default="true"/>
 
   <!--
     -1：不注入故障，正常从最高分候选开始。
@@ -22,6 +22,17 @@
 
   <arg name="top_k" default="5"/>
   <arg name="min_cartesian_fraction" default="0.999"/>
+
+  <!-- 真实AnyGrasp离线推理结果和对应XYZRGB点云。 -->
+  <arg name="anygrasp_results_path"
+       default="$(env HOME)/anygrasp_ws/captures/anygrasp_offline_results_latest.npz"/>
+
+  <arg name="xyzrgb_capture_path"
+       default="$(env HOME)/anygrasp_ws/captures/hand_camera_xyzrgb_latest.npz"/>
+
+  <!-- Piper TCP沿抓取接近方向后退15 mm。 -->
+  <arg name="tcp_backoff"
+       default="0.015"/>
 
   <!-- 统一话题名称。 -->
   <arg name="candidate_topic"
@@ -60,6 +71,39 @@
            value="base_link"/>
   </node>
 
+
+  <!-- ================================================== -->
+  <!-- 1B. 真实AnyGrasp离线候选发布器                      -->
+  <!-- ================================================== -->
+
+  <node unless="$(arg use_mock_candidates)"
+        pkg="piper_anygrasp_demo"
+        type="anygrasp_offline_candidate_publisher.py"
+        name="offline_anygrasp_candidate_publisher"
+        output="screen"
+        required="true">
+
+    <param name="input_path"
+           value="$(arg anygrasp_results_path)"/>
+
+    <param name="capture_path"
+           value="$(arg xyzrgb_capture_path)"/>
+
+    <param name="output_topic"
+           value="$(arg candidate_topic)"/>
+
+    <param name="top_n"
+           value="$(arg top_k)"/>
+
+    <param name="align_opening_axis"
+           value="true"/>
+
+    <param name="apply_tcp_alignment"
+           value="true"/>
+
+    <param name="tcp_backoff"
+           value="$(arg tcp_backoff)"/>
+  </node>
 
   <!-- ================================================== -->
   <!-- 2. 几何规则筛选与分数排序                           -->
