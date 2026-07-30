@@ -239,6 +239,13 @@ catkin_install_python(
     scripts/grasp_candidate_filter_node.py
     scripts/topk_grasp_planner_node.py
     scripts/grasp_candidate_marker_node.py
+    scripts/anygrasp_xyzrgb_capture_node.py
+    scripts/anygrasp_pointcloud_dryrun_node.py
+    scripts/anygrasp_offline_inference_test.py
+    scripts/anygrasp_pose_adapter_test_node.py
+    scripts/anygrasp_tcp_alignment_inspect_node.py
+    scripts/anygrasp_offline_candidate_publisher.py
+    scripts/allow_target_touch_once.py
     scripts/cartesian_grasp_retreat_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
