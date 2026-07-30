@@ -23,6 +23,19 @@ from gazebo_ros_link_attacher.srv import (
     AttachRequest,
 )
 
+from moveit_msgs.msg import (
+    AllowedCollisionEntry,
+    PlanningScene,
+    PlanningSceneComponents,
+)
+
+from moveit_msgs.srv import (
+    ApplyPlanningScene,
+    ApplyPlanningSceneRequest,
+    GetPlanningScene,
+    GetPlanningSceneRequest,
+)
+
 
 ARM_GROUP = "arm"
 
@@ -273,6 +286,37 @@ class GazeboPickPlace:
             GAZEBO_DETACH_SERVICE,
             Attach,
         )
+
+        # 仅在夹爪闭合阶段，允许两根手指接触目标物体。
+        self.target_touch_links = rospy.get_param(
+            "~target_touch_links",
+            [
+                "link7",
+                "link8",
+            ],
+        )
+
+        self.get_planning_scene_service_name = rospy.get_param(
+            "~get_planning_scene_service",
+            "/get_planning_scene",
+        )
+
+        self.apply_planning_scene_service_name = rospy.get_param(
+            "~apply_planning_scene_service",
+            "/apply_planning_scene",
+        )
+
+        self.get_planning_scene_client = rospy.ServiceProxy(
+            self.get_planning_scene_service_name,
+            GetPlanningScene,
+        )
+
+        self.apply_planning_scene_client = rospy.ServiceProxy(
+            self.apply_planning_scene_service_name,
+            ApplyPlanningScene,
+        )
+
+        self.saved_touch_permissions = {}
 
     @staticmethod
     def read_list_parameter(name, default, expected_length):
@@ -994,6 +1038,227 @@ class GazeboPickPlace:
             self.grasp_orientation[3],
         )
 
+    @staticmethod
+    def ensure_acm_name(
+        allowed_collision_matrix,
+        name,
+    ):
+        """Ensure a name exists as both a row and column in the ACM."""
+
+        if name in allowed_collision_matrix.entry_names:
+            return allowed_collision_matrix.entry_names.index(
+                name
+            )
+
+        old_size = len(
+            allowed_collision_matrix.entry_names
+        )
+
+        allowed_collision_matrix.entry_names.append(
+            name
+        )
+
+        for entry in allowed_collision_matrix.entry_values:
+            while len(entry.enabled) < old_size:
+                entry.enabled.append(False)
+
+            entry.enabled.append(False)
+
+        new_entry = AllowedCollisionEntry()
+        new_entry.enabled = [
+            False
+            for _ in range(old_size + 1)
+        ]
+
+        allowed_collision_matrix.entry_values.append(
+            new_entry
+        )
+
+        return old_size
+
+    @classmethod
+    def get_acm_pair(
+        cls,
+        allowed_collision_matrix,
+        first_name,
+        second_name,
+    ):
+        first_index = cls.ensure_acm_name(
+            allowed_collision_matrix,
+            first_name,
+        )
+
+        second_index = cls.ensure_acm_name(
+            allowed_collision_matrix,
+            second_name,
+        )
+
+        return bool(
+            allowed_collision_matrix
+            .entry_values[first_index]
+            .enabled[second_index]
+        )
+
+    @classmethod
+    def set_acm_pair(
+        cls,
+        allowed_collision_matrix,
+        first_name,
+        second_name,
+        enabled,
+    ):
+        first_index = cls.ensure_acm_name(
+            allowed_collision_matrix,
+            first_name,
+        )
+
+        second_index = cls.ensure_acm_name(
+            allowed_collision_matrix,
+            second_name,
+        )
+
+        allowed_collision_matrix.entry_values[
+            first_index
+        ].enabled[second_index] = bool(enabled)
+
+        allowed_collision_matrix.entry_values[
+            second_index
+        ].enabled[first_index] = bool(enabled)
+
+    def get_allowed_collision_matrix(self):
+        request = GetPlanningSceneRequest()
+
+        request.components.components = (
+            PlanningSceneComponents
+            .ALLOWED_COLLISION_MATRIX
+        )
+
+        response = self.get_planning_scene_client(
+            request
+        )
+
+        return response.scene.allowed_collision_matrix
+
+    def apply_allowed_collision_matrix(
+        self,
+        allowed_collision_matrix,
+    ):
+        planning_scene = PlanningScene()
+        planning_scene.is_diff = True
+        planning_scene.allowed_collision_matrix = (
+            allowed_collision_matrix
+        )
+
+        request = ApplyPlanningSceneRequest()
+        request.scene = planning_scene
+
+        response = self.apply_planning_scene_client(
+            request
+        )
+
+        if not response.success:
+            raise RuntimeError(
+                "MoveIt rejected the Allowed Collision Matrix update."
+            )
+
+    def allow_target_touch(self):
+        """Allow finger contact only after Cartesian approach completes."""
+
+        rospy.loginfo(
+            "Waiting for MoveIt planning-scene services..."
+        )
+
+        rospy.wait_for_service(
+            self.get_planning_scene_service_name,
+            timeout=10.0,
+        )
+
+        rospy.wait_for_service(
+            self.apply_planning_scene_service_name,
+            timeout=10.0,
+        )
+
+        allowed_collision_matrix = (
+            self.get_allowed_collision_matrix()
+        )
+
+        self.saved_touch_permissions = {}
+
+        for link_name in self.target_touch_links:
+            previous_value = self.get_acm_pair(
+                allowed_collision_matrix,
+                self.object_name,
+                link_name,
+            )
+
+            self.saved_touch_permissions[
+                link_name
+            ] = previous_value
+
+            self.set_acm_pair(
+                allowed_collision_matrix,
+                self.object_name,
+                link_name,
+                True,
+            )
+
+            rospy.loginfo(
+                "Temporarily allowing expected contact: "
+                "%s <-> %s",
+                self.object_name,
+                link_name,
+            )
+
+        self.apply_allowed_collision_matrix(
+            allowed_collision_matrix
+        )
+
+        rospy.sleep(0.2)
+
+        rospy.loginfo(
+            "Temporary target-touch permissions applied."
+        )
+
+    def restore_target_touch(self):
+        """Restore the ACM values that existed before grasp closing."""
+
+        if not self.saved_touch_permissions:
+            return
+
+        allowed_collision_matrix = (
+            self.get_allowed_collision_matrix()
+        )
+
+        for (
+            link_name,
+            previous_value,
+        ) in self.saved_touch_permissions.items():
+
+            self.set_acm_pair(
+                allowed_collision_matrix,
+                self.object_name,
+                link_name,
+                previous_value,
+            )
+
+            rospy.loginfo(
+                "Restoring collision permission: "
+                "%s <-> %s = %s",
+                self.object_name,
+                link_name,
+                previous_value,
+            )
+
+        self.apply_allowed_collision_matrix(
+            allowed_collision_matrix
+        )
+
+        self.saved_touch_permissions = {}
+
+        rospy.loginfo(
+            "Original target-touch permissions restored."
+        )
+
     def run(self):
         rospy.loginfo(
             "========== TOPIC-DRIVEN PICK AND PLACE =========="
@@ -1061,13 +1326,21 @@ class GazeboPickPlace:
             "CARTESIAN APPROACH",
         )
 
-        self.command_gripper(
-            self.gripper_close,
-            "GRIPPER CLOSE",
-        )
+        # 到达方块两侧后，才允许两根手指接触目标。
+        self.allow_target_touch()
 
-        self.attach_moveit()
-        self.attach_gazebo()
+        try:
+            self.command_gripper(
+                self.gripper_close,
+                "GRIPPER CLOSE",
+            )
+
+            self.attach_moveit()
+            self.attach_gazebo()
+
+        finally:
+            # attach完成后立即恢复原碰撞规则。
+            self.restore_target_touch()
 
         rospy.sleep(0.3)
 

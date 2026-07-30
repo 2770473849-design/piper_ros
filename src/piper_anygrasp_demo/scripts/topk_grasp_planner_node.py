@@ -20,6 +20,11 @@ from piper_anygrasp_demo.msg import (
     GraspCandidateArray,
 )
 
+from moveit_ctrl.srv import (
+    JointMoveitCtrl,
+    JointMoveitCtrlRequest,
+)
+
 
 class TopKGraspPlanner:
     """Plan Top-K grasp candidates without executing robot motion."""
@@ -73,6 +78,38 @@ class TopKGraspPlanner:
 
         self.eef_step = float(
             rospy.get_param("~eef_step", 0.001)
+        )
+
+        # Top-K碰撞检查前，先确保夹爪处于张开状态。
+        self.gripper_service_name = rospy.get_param(
+            "~gripper_service",
+            "/joint_moveit_ctrl_gripper",
+        )
+
+        self.planning_gripper_open = float(
+            rospy.get_param(
+                "~planning_gripper_open",
+                0.020,
+            )
+        )
+
+        self.gripper_velocity = float(
+            rospy.get_param(
+                "~gripper_velocity",
+                0.3,
+            )
+        )
+
+        self.gripper_acceleration = float(
+            rospy.get_param(
+                "~gripper_acceleration",
+                0.3,
+            )
+        )
+
+        self.gripper_client = rospy.ServiceProxy(
+            self.gripper_service_name,
+            JointMoveitCtrl,
         )
 
         self.jump_threshold = float(
@@ -151,6 +188,8 @@ class TopKGraspPlanner:
         )
 
         self.processing_lock = threading.Lock()
+
+        self.prepare_gripper_for_planning()
 
         self.subscriber = rospy.Subscriber(
             self.input_topic,
@@ -486,7 +525,58 @@ class TopKGraspPlanner:
             trajectory_points,
         )
 
+    def prepare_gripper_for_planning(self):
+        """Open the gripper before evaluating Cartesian approaches."""
 
+        rospy.loginfo(
+            "Waiting for planning gripper service: %s",
+            self.gripper_service_name,
+        )
+
+        try:
+            rospy.wait_for_service(
+                self.gripper_service_name,
+                timeout=15.0,
+            )
+
+        except rospy.ROSException:
+            raise RuntimeError(
+                "Timed out waiting for gripper service '{}'.".format(
+                    self.gripper_service_name
+                )
+            )
+
+        request = JointMoveitCtrlRequest()
+        request.gripper = self.planning_gripper_open
+        request.max_velocity = self.gripper_velocity
+        request.max_acceleration = self.gripper_acceleration
+
+        rospy.loginfo(
+            "Opening gripper for Top-K planning: %.4f m",
+            self.planning_gripper_open,
+        )
+
+        response = self.gripper_client(
+            request
+        )
+
+        if (
+            not getattr(response, "status", False)
+            or getattr(response, "error_code", 0) != 0
+        ):
+            raise RuntimeError(
+                "Failed to open gripper for Top-K planning: "
+                "status={}, error_code={}".format(
+                    getattr(response, "status", None),
+                    getattr(response, "error_code", None),
+                )
+            )
+
+        rospy.sleep(0.5)
+
+        rospy.loginfo(
+            "Gripper opened for Top-K planning."
+        )
 
     def process_candidates(self, message):
         source_frame = message.header.frame_id.strip()
