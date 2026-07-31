@@ -252,6 +252,12 @@ catkin_install_python(
 )
 
 install(
+  PROGRAMS
+    scripts/anygrasp_online_inference_wrapper.sh
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(
   DIRECTORY launch/
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
 )

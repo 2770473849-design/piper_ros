@@ -7,11 +7,21 @@
 
   <!--
     候选来源：
-      mock    = 模拟候选发布器
-      offline = 已保存的AnyGrasp推理结果
-      external = 外部节点发布候选，例如在线AnyGrasp节点
+      mock     = 模拟候选发布器
+      offline  = 已保存的AnyGrasp推理结果
+      online   = 实时PointCloud2经过AnyGrasp单次在线推理
+      external = 外部节点已经发布候选
   -->
   <arg name="candidate_source" default="offline"/>
+
+  <arg name="online_point_cloud_topic"
+       default="/hand_camera/depth/points"/>
+
+  <arg name="online_checkpoint_path"
+       default="$(env HOME)/anygrasp_ws/anygrasp_sdk/grasp_detection/log/checkpoint_detection.tar"/>
+
+  <arg name="online_swap_red_blue" default="true"/>
+  <arg name="online_stride" default="1"/>
 
   <!-- 是否在RViz中显示候选坐标轴。 -->
   <arg name="enable_markers" default="true"/>
@@ -99,6 +109,45 @@
 
     <param name="top_n"
            value="$(arg top_k)"/>
+
+    <param name="align_opening_axis"
+           value="true"/>
+
+    <param name="apply_tcp_alignment"
+           value="true"/>
+
+    <param name="tcp_backoff"
+           value="$(arg tcp_backoff)"/>
+  </node>
+
+  <!-- ================================================== -->
+  <!-- 1C. 真实AnyGrasp实时在线推理                        -->
+  <!-- ================================================== -->
+
+  <node if="$(eval arg('candidate_source') == 'online')"
+        pkg="piper_anygrasp_demo"
+        type="anygrasp_online_inference_wrapper.sh"
+        name="online_anygrasp_inference"
+        output="screen"
+        required="true">
+
+    <param name="point_cloud_topic"
+           value="$(arg online_point_cloud_topic)"/>
+
+    <param name="checkpoint_path"
+           value="$(arg online_checkpoint_path)"/>
+
+    <param name="output_topic"
+           value="$(arg candidate_topic)"/>
+
+    <param name="top_n"
+           value="$(arg top_k)"/>
+
+    <param name="swap_red_blue"
+           value="$(arg online_swap_red_blue)"/>
+
+    <param name="stride"
+           value="$(arg online_stride)"/>
 
     <param name="align_opening_axis"
            value="true"/>
@@ -205,6 +254,8 @@
         type="gazebo_pick_place_from_topic_node.py"
         name="multi_candidate_pick_place_executor"
         output="screen">
+    <env name="PYTHONPATH"
+         value="$(env HOME)/gazebo_link_attacher_ws/devel/lib/python3/dist-packages:$(env HOME)/piper_ros/devel/lib/python3/dist-packages:/opt/ros/noetic/lib/python3/dist-packages:$(optenv PYTHONPATH)"/>
 
     <param name="grasp_candidate_topic"
            value="$(arg planned_candidate_topic)"/>
