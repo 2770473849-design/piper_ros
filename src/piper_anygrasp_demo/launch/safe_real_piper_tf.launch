@@ -1,0 +1,25 @@
+<launch>
+  <!-- 把实机反馈转换为当前URDF使用的关节名称 -->
+  <node pkg="piper_anygrasp_demo"
+        type="real_joint_state_adapter_node.py"
+        name="real_joint_state_adapter"
+        output="screen">
+    <param name="input_topic" value="/joint_states_single"/>
+    <param name="output_topic" value="/joint_states_calibration"/>
+    <param name="joint7_position" value="0.0"/>
+    <param name="joint8_position" value="0.0"/>
+  </node>
+
+  <!-- 加载真实Piper机器人模型，不启动任何控制界面 -->
+  <param name="robot_description"
+         textfile="$(find piper_description)/urdf/piper_description.xacro"/>
+
+  <!-- 仅使用真实反馈 /joint_states_single 计算TF -->
+  <node pkg="robot_state_publisher"
+        type="robot_state_publisher"
+        name="real_piper_robot_state_publisher"
+        output="screen">
+    <param name="publish_frequency" value="100.0"/>
+    <remap from="joint_states" to="/joint_states_calibration"/>
+  </node>
+</launch>

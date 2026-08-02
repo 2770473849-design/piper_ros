@@ -1,0 +1,23 @@
+<launch>
+  <!-- 当前robot_description和TF由safe_real_piper_tf.launch提供 -->
+
+  <!-- 启动MoveIt，但禁止一切轨迹执行 -->
+  <group>
+    <!-- MoveIt读取真实机械臂反馈，而不是控制输入/joint_states -->
+    <remap from="/joint_states" to="/joint_states_calibration"/>
+
+    <include file="$(find piper_with_gripper_moveit)/launch/move_group.launch">
+      <arg name="allow_trajectory_execution" value="false"/>
+      <arg name="moveit_controller_manager" value="simple"/>
+      <arg name="load_robot_description" value="false"/>
+      <arg name="pipeline" value="ompl"/>
+      <arg name="info" value="true"/>
+    </include>
+  </group>
+
+  <!-- 只启动MoveIt RViz界面 -->
+  <include file="$(find piper_with_gripper_moveit)/launch/moveit_rviz.launch">
+    <arg name="rviz_config" value="$(find piper_with_gripper_moveit)/launch/moveit.rviz"/>
+    <arg name="debug" value="false"/>
+  </include>
+</launch>

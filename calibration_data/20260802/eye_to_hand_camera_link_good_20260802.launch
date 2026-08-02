@@ -1,0 +1,24 @@
+<launch>
+  <!--
+    Final eye-to-hand transform using the RealSense root frame.
+
+    Calibrated transform:
+      arm_base -> camera_color_optical_frame
+      xyz: 0.0620138 0.329759 0.52994
+      quat: -0.683669 0.694565 -0.14393 0.171639
+
+    RealSense internal transform:
+      camera_link -> camera_color_optical_frame
+      xyz: -0.000478333 0.014794233 -0.000001957
+      quat: -0.502000609 0.498227042 -0.497010425 0.502738321
+
+    Derived transform:
+      arm_base -> camera_link
+  -->
+
+  <node
+    pkg="tf2_ros"
+    type="static_transform_publisher"
+    name="eye_to_hand_camera_link_broadcaster"
+    args="0.062095935 0.314985039 0.529033644 0.015952508 0.531207027 0.004897577 0.847077698 arm_base camera_link" />
+</launch>
