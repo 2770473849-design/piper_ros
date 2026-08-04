@@ -1,0 +1,16 @@
+<launch>
+  <!-- 只启动 MoveIt move_group，不启动 RViz，不允许执行轨迹 -->
+
+  <group>
+    <!-- 让 move_group 读取真实机械臂反馈 -->
+    <remap from="/joint_states" to="/joint_states_calibration"/>
+
+    <include file="$(find piper_with_gripper_moveit)/launch/move_group.launch">
+      <arg name="allow_trajectory_execution" value="false"/>
+      <arg name="moveit_controller_manager" value="simple"/>
+      <arg name="load_robot_description" value="false"/>
+      <arg name="pipeline" value="ompl"/>
+      <arg name="info" value="true"/>
+    </include>
+  </group>
+</launch>

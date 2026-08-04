@@ -1,0 +1,19 @@
+<launch>
+  <!--
+    Eye-to-hand calibration after resetting joint6 zero.
+
+    Calibrated optical transform:
+      arm_base -> camera_color_optical_frame
+      xyz: 0.0594115 0.329344 0.530141
+      quat: -0.679963 0.697289 -0.146088 0.173482
+
+    Converted RealSense root transform:
+      arm_base -> camera_link
+  -->
+
+  <node
+    pkg="tf2_ros"
+    type="static_transform_publisher"
+    name="eye_to_hand_camera_link_j6zero_broadcaster"
+    args="0.059364627 0.314571328 0.529211423 0.019019529 0.528733092 0.001514779 0.848573674 arm_base camera_link" />
+</launch>

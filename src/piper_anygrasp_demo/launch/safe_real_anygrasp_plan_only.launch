@@ -1,0 +1,108 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<launch>
+  <arg name="point_cloud_topic" default="/camera/depth/color/points" />
+
+  <arg name="checkpoint_path" default="/home/tancheng/anygrasp_ws/anygrasp_sdk/grasp_detection/log/checkpoint_detection.tar" />
+
+  <arg name="swap_red_blue" default="false" />
+
+  <arg name="stride" default="1" />
+
+  <arg name="tcp_backoff" default="0.015" />
+
+  <arg name="enable_planner" default="false" />
+
+  <arg name="enable_markers" default="true" />
+
+  <arg name="candidate_topic" default="/safe_real_anygrasp_candidates" />
+
+  <arg name="filtered_topic" default="/safe_real_filtered_grasp_candidates" />
+
+  <arg name="planned_pose_topic" default="/safe_real_planned_grasp_tcp_pose" />
+
+  <arg name="planned_candidate_topic" default="/safe_real_planned_grasp_candidate" />
+
+  <arg name="selected_id_topic" default="/safe_real_selected_grasp_candidate_id" />
+
+  <arg name="marker_topic" default="/safe_real_grasp_candidate_markers" />
+
+  <node pkg="piper_anygrasp_demo" type="anygrasp_online_inference_wrapper.sh" name="safe_real_online_anygrasp_inference" output="screen">
+
+    <param name="point_cloud_topic" value="$(arg point_cloud_topic)" />
+
+    <param name="checkpoint_path" value="$(arg checkpoint_path)" />
+
+    <param name="output_topic" value="$(arg candidate_topic)" />
+
+    <param name="top_n" value="20" />
+
+    <param name="swap_red_blue" value="$(arg swap_red_blue)" />
+
+    <param name="stride" value="$(arg stride)" />
+
+    <param name="align_opening_axis" value="true" />
+
+    <param name="apply_tcp_alignment" value="true" />
+
+    <param name="tcp_backoff" value="$(arg tcp_backoff)" />
+
+    <param name="collision_detection" value="true" />
+  </node>
+
+  <node pkg="piper_anygrasp_demo" type="grasp_candidate_filter_node.py" name="safe_real_grasp_candidate_filter" output="screen">
+
+    <param name="input_topic" value="$(arg candidate_topic)" />
+
+    <param name="filtered_topic" value="$(arg filtered_topic)" />
+
+    <param name="selected_pose_topic" value="/safe_real_rule_only_grasp_tcp_pose" />
+
+    <param name="target_frame" value="arm_base" />
+
+    <param name="x_min" value="0.10" />
+    <param name="x_max" value="0.45" />
+
+    <param name="y_min" value="-0.45" />
+    <param name="y_max" value="0.45" />
+
+    <param name="z_min" value="-0.02" />
+    <param name="z_max" value="0.25" />
+
+    <param name="width_min" value="0.010" />
+    <param name="width_max" value="0.071" />
+
+    <param name="min_score" value="0.0" />
+    <param name="max_approach_z" value="-0.95" />
+    <param name="top_k" value="10" />
+    <param name="tf_timeout" value="2.0" />
+  </node>
+
+  <node if="$(arg enable_markers)" pkg="piper_anygrasp_demo" type="grasp_candidate_marker_node.py" name="safe_real_grasp_candidate_marker" output="screen">
+
+    <param name="input_topic" value="$(arg filtered_topic)" />
+
+    <param name="output_topic" value="$(arg marker_topic)" />
+
+    <param name="axis_length" value="0.045" />
+  </node>
+
+  <node if="$(arg enable_planner)" pkg="piper_anygrasp_demo" type="topk_grasp_planner_node.py" name="safe_real_topk_grasp_planner" output="screen">
+
+    <param name="input_topic" value="$(arg filtered_topic)" />
+
+    <param name="output_pose_topic" value="$(arg planned_pose_topic)" />
+
+    <param name="output_candidate_topic" value="$(arg planned_candidate_topic)" />
+
+    <param name="output_id_topic" value="$(arg selected_id_topic)" />
+
+    <param name="forced_failure_id" value="-1" />
+    <param name="min_cartesian_fraction" value="0.999" />
+    <param name="planning_time" value="15.0" />
+    <param name="planning_attempts" value="10" />
+    <param name="eef_step" value="0.001" />
+
+    
+    <param name="grasp_depth_retract" value="0.015" />
+  </node>
+</launch>

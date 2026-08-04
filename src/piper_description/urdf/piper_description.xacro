@@ -161,7 +161,7 @@
     <axis
       xyz="0 0 1" />
     <limit
-      lower="0"
+      lower="-0.05236"
       upper="3.14"
       effort="100"
       velocity="5" />
@@ -221,7 +221,7 @@
       xyz="0 0 1" />
     <limit
       lower="-2.967"
-      upper="0"
+      upper="0.05236"
       effort="100"
       velocity="5" />
   </joint>
@@ -450,6 +450,29 @@
     <child
       link="gripper_base" />
   </joint>
+
+  <!--
+    Virtual grasp TCP:
+    fixed at the geometric center of the effective
+    finger gripping region.
+
+    +Z follows link6 and is used as the grasp
+    approach axis by the current AnyGrasp adapter.
+  -->
+  <link name="grasp_tcp" />
+
+  <joint
+    name="joint6_to_grasp_tcp"
+    type="fixed">
+    <origin
+      xyz="0 0 0.09755"
+      rpy="0 0 0" />
+    <parent
+      link="link6" />
+    <child
+      link="grasp_tcp" />
+  </joint>
+
   <link
     name="link7">
     <inertial>

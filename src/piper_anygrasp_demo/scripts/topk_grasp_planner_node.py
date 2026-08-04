@@ -13,7 +13,10 @@ import tf2_ros
 
 from geometry_msgs.msg import Pose, PoseStamped
 from std_msgs.msg import UInt32
-from tf.transformations import quaternion_matrix
+from tf.transformations import (
+    quaternion_from_matrix,
+    quaternion_matrix,
+)
 
 from piper_anygrasp_demo.msg import (
     GraspCandidate,
@@ -54,9 +57,32 @@ class TopKGraspPlanner:
         )
 
         # 已经在当前 Piper 抓放流程中验证稳定的参数。
-        self.tcp_offset = float(
-            rospy.get_param("~tcp_offset", 0.09755)
+        # grasp_tcp 已由 URDF 固定关节定义，
+        # 禁止再次叠加旧的 0.09755 m 数值偏移。
+        self.tcp_offset = 0.0
+
+        # 沿候选夹爪局部 -Z 方向回退抓取深度。
+        # 默认值为0，不改变原有行为。
+        self.grasp_depth_retract = max(
+            0.0,
+            float(
+                rospy.get_param(
+                    "~grasp_depth_retract",
+                    0.0,
+                )
+            ),
         )
+
+        # 平行夹爪绕自身局部Z轴旋转180度后，
+        # 接近方向不变，只交换两根对称手指。
+        # 默认关闭，不改变原有行为。
+        self.flip_gripper_180 = bool(
+            rospy.get_param(
+                "~flip_gripper_180",
+                False,
+            )
+        )
+
         self.approach_distance = float(
             rospy.get_param("~approach_distance", 0.045)
         )
@@ -142,9 +168,24 @@ class TopKGraspPlanner:
         self.planning_frame = (
             self.arm.get_planning_frame()
         )
-        self.end_effector_link = (
+        self.end_effector_link = "grasp_tcp"
+
+        self.arm.set_end_effector_link(
+            self.end_effector_link
+        )
+
+        active_end_effector = (
             self.arm.get_end_effector_link()
         )
+
+        if active_end_effector != self.end_effector_link:
+            raise RuntimeError(
+                "MoveIt end-effector configuration failed: "
+                "requested '{}', active '{}'.".format(
+                    self.end_effector_link,
+                    active_end_effector,
+                )
+            )
 
         self.arm.set_planning_time(
             self.planning_time
@@ -189,7 +230,19 @@ class TopKGraspPlanner:
 
         self.processing_lock = threading.Lock()
 
-        self.prepare_gripper_for_planning()
+        # 实机安全开关：默认仅规划，不控制夹爪。
+        self.command_gripper_on_startup = bool(
+            rospy.get_param("~command_gripper_on_startup", False)
+        )
+
+        if self.command_gripper_on_startup:
+            rospy.logwarn(
+                "PLAN-ONLY SAFETY: gripper command is disabled."
+            )
+        else:
+            rospy.logwarn(
+                "Pure planning mode: startup gripper command is disabled."
+            )
 
         self.subscriber = rospy.Subscriber(
             self.input_topic,
@@ -629,6 +682,95 @@ class TopKGraspPlanner:
                     candidate,
                     source_frame,
                 )
+
+                # 对矮小桌面物体，沿夹爪局部 -Z 回退，
+                # 避免长手指在到达抓取中心前撞到桌面。
+                if self.grasp_depth_retract > 0.0:
+                    orientation = grasp_tcp.pose.orientation
+
+                    quaternion = self.normalize_quaternion(
+                        [
+                            orientation.x,
+                            orientation.y,
+                            orientation.z,
+                            orientation.w,
+                        ]
+                    )
+
+                    retract_axis = (
+                        self.local_positive_z_axis(
+                            quaternion
+                        )
+                    )
+
+                    grasp_tcp.pose.position.x -= (
+                        self.grasp_depth_retract
+                        * retract_axis[0]
+                    )
+                    grasp_tcp.pose.position.y -= (
+                        self.grasp_depth_retract
+                        * retract_axis[1]
+                    )
+                    grasp_tcp.pose.position.z -= (
+                        self.grasp_depth_retract
+                        * retract_axis[2]
+                    )
+
+                    rospy.logwarn(
+                        "Candidate %d TCP retracted %.1f mm "
+                        "along local -Z.",
+                        candidate.id,
+                        self.grasp_depth_retract * 1000.0,
+                    )
+
+                if self.flip_gripper_180:
+                    orientation = grasp_tcp.pose.orientation
+
+                    quaternion = self.normalize_quaternion(
+                        [
+                            orientation.x,
+                            orientation.y,
+                            orientation.z,
+                            orientation.w,
+                        ]
+                    )
+
+                    rotation = quaternion_matrix(
+                        quaternion
+                    )[:3, :3]
+
+                    flipped_matrix = np.eye(4)
+                    flipped_matrix[:3, :3] = (
+                        rotation
+                        @ np.diag(
+                            [-1.0, -1.0, 1.0]
+                        )
+                    )
+
+                    flipped_quaternion = (
+                        quaternion_from_matrix(
+                            flipped_matrix
+                        )
+                    )
+
+                    grasp_tcp.pose.orientation.x = float(
+                        flipped_quaternion[0]
+                    )
+                    grasp_tcp.pose.orientation.y = float(
+                        flipped_quaternion[1]
+                    )
+                    grasp_tcp.pose.orientation.z = float(
+                        flipped_quaternion[2]
+                    )
+                    grasp_tcp.pose.orientation.w = float(
+                        flipped_quaternion[3]
+                    )
+
+                    rospy.logwarn(
+                        "Candidate %d orientation flipped "
+                        "180 deg about local Z.",
+                        candidate.id,
+                    )
 
                 pregrasp_tcp, local_z = (
                     self.calculate_pregrasp_tcp(
