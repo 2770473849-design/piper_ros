@@ -1,0 +1,372 @@
+{
+  "checked_on": "2026-11-05",
+  "timezone": "Asia/Shanghai",
+  "method": "GitHub connector repository metadata; selected README, source files, and issue samples. Not runtime reproduction.",
+  "issue_count_note": "open_issues_count includes open pull requests; not pure issues. Sampled issue pages are not exhaustive.",
+  "repos": [
+    {
+      "repo": "petercorke/robotics-toolbox-python",
+      "url": "https://github.com/petercorke/robotics-toolbox-python",
+      "stars": 3564,
+      "forks": 650,
+      "open_issues_and_prs": 76,
+      "pushed_at": "2026-11-03T05:33:35Z",
+      "default_branch": "main",
+      "license_metadata": "MIT",
+      "archived": false,
+      "selected_open_issues": [
+        {
+          "number": 924,
+          "title": "trapezoidal accepts the zero-blend velocity boundary but returns NaN at the initial sample",
+          "url": "https://github.com/petercorke/robotics-toolbox-python/issues/924",
+          "comments": 1,
+          "created": "2026-11-03T10:04:46Z",
+          "updated": "2026-11-05T07:20:25Z"
+        },
+        {
+          "number": 903,
+          "title": "Isaac Sim backend",
+          "url": "https://github.com/petercorke/robotics-toolbox-python/issues/903",
+          "comments": 2,
+          "created": "2026-10-25T22:11:11Z",
+          "updated": "2026-10-30T19:32:45Z"
+        },
+        {
+          "number": 902,
+          "title": "Backend registry: single name → constructor dispatch",
+          "url": "https://github.com/petercorke/robotics-toolbox-python/issues/902",
+          "comments": 3,
+          "created": "2026-10-25T21:58:01Z",
+          "updated": "2026-10-27T06:40:41Z"
+        },
+        {
+          "number": 898,
+          "title": "Speed up the coverage job (about 25 minutes since coverage became real)",
+          "url": "https://github.com/petercorke/robotics-toolbox-python/issues/898",
+          "comments": 1,
+          "created": "2026-10-23T08:42:47Z",
+          "updated": "2026-11-01T14:35:15Z"
+        },
+        {
+          "number": 895,
+          "title": "LatticePlanner: integer headings, and motion primitives with finer turn steps (design first)",
+          "url": "https://github.com/petercorke/robotics-toolbox-python/issues/895",
+          "comments": 2,
+          "created": "2026-10-23T04:57:53Z",
+          "updated": "2026-10-25T21:54:19Z"
+        },
+        {
+          "number": 894,
+          "title": "Codacy and code-quality follow-ups after reaching grade A (plan)",
+          "url": "https://github.com/petercorke/robotics-toolbox-python/issues/894",
+          "comments": 0,
+          "created": "2026-10-23T03:23:43Z",
+          "updated": "2026-10-23T03:23:43Z"
+        },
+        {
+          "number": 886,
+          "title": "Backends wanted: CoppeliaSim, Viser, Gazebo, MuJoCo and others (plan first)",
+          "url": "https://github.com/petercorke/robotics-toolbox-python/issues/886",
+          "comments": 3,
+          "created": "2026-10-22T06:28:34Z",
+          "updated": "2026-10-25T22:11:25Z"
+        },
+        {
+          "number": 884,
+          "title": "Rethink how grippers are modeled, and pause gripper-related changes",
+          "url": "https://github.com/petercorke/robotics-toolbox-python/issues/884",
+          "comments": 0,
+          "created": "2026-10-22T05:43:30Z",
+          "updated": "2026-10-22T05:43:30Z"
+        }
+      ]
+    },
+    {
+      "repo": "graspnet/anygrasp_sdk",
+      "url": "https://github.com/graspnet/anygrasp_sdk",
+      "stars": 1050,
+      "forks": 92,
+      "open_issues_and_prs": 69,
+      "pushed_at": "2026-07-13T12:08:21Z",
+      "default_branch": "main",
+      "archived": false,
+      "selected_open_issues": [
+        {
+          "number": 179,
+          "title": "how to check the license application",
+          "url": "https://github.com/graspnet/anygrasp_sdk/issues/179",
+          "comments": 0,
+          "created": "2026-11-01T07:59:47Z",
+          "updated": "2026-11-01T07:59:47Z"
+        },
+        {
+          "number": 178,
+          "title": "AnyGrasp License Feature ID Changes After Reboot on the Same Machine",
+          "url": "https://github.com/graspnet/anygrasp_sdk/issues/178",
+          "comments": 0,
+          "created": "2026-10-26T08:49:18Z",
+          "updated": "2026-10-26T08:49:18Z"
+        },
+        {
+          "number": 177,
+          "title": "License Re-request: feature_id changed after migrating to a new machine",
+          "url": "https://github.com/graspnet/anygrasp_sdk/issues/177",
+          "comments": 0,
+          "created": "2026-10-20T05:01:40Z",
+          "updated": "2026-10-20T05:01:40Z"
+        },
+        {
+          "number": 176,
+          "title": "Request for correcting academic license machine ID",
+          "url": "https://github.com/graspnet/anygrasp_sdk/issues/176",
+          "comments": 0,
+          "created": "2026-09-28T10:28:20Z",
+          "updated": "2026-09-28T10:29:45Z"
+        },
+        {
+          "number": 175,
+          "title": "Follow-up on AnyGrasp License Application",
+          "url": "https://github.com/graspnet/anygrasp_sdk/issues/175",
+          "comments": 3,
+          "created": "2026-09-16T10:47:10Z",
+          "updated": "2026-09-21T10:27:51Z"
+        },
+        {
+          "number": 174,
+          "title": "License Application: Feature ID Provided",
+          "url": "https://github.com/graspnet/anygrasp_sdk/issues/174",
+          "comments": 2,
+          "created": "2026-09-04T06:09:57Z",
+          "updated": "2026-09-07T09:02:45Z"
+        },
+        {
+          "number": 172,
+          "title": "License Request",
+          "url": "https://github.com/graspnet/anygrasp_sdk/issues/172",
+          "comments": 0,
+          "created": "2026-08-29T06:44:34Z",
+          "updated": "2026-08-29T06:44:34Z"
+        },
+        {
+          "number": 171,
+          "title": "I am not getting good grasp",
+          "url": "https://github.com/graspnet/anygrasp_sdk/issues/171",
+          "comments": 1,
+          "created": "2026-08-25T14:36:19Z",
+          "updated": "2026-08-27T12:28:35Z"
+        }
+      ]
+    },
+    {
+      "repo": "moveit/moveit",
+      "url": "https://github.com/moveit/moveit",
+      "stars": 2097,
+      "forks": 985,
+      "open_issues_and_prs": 622,
+      "pushed_at": "2026-07-20T10:18:45Z",
+      "default_branch": "master",
+      "license_metadata": "BSD-3-Clause",
+      "archived": false
+    },
+    {
+      "repo": "NVlabs/curobo",
+      "url": "https://github.com/NVlabs/curobo",
+      "stars": 1956,
+      "forks": 382,
+      "open_issues_and_prs": 33,
+      "pushed_at": "2026-11-05T04:55:19Z",
+      "default_branch": "main",
+      "license_metadata": "Apache-2.0",
+      "archived": false,
+      "selected_open_issues": [
+        {
+          "number": 735,
+          "title": "[Bug]: URDF continuous joint without a limit element raises NoneType.effort during loading",
+          "url": "https://github.com/NVlabs/curobo/issues/735",
+          "comments": 2,
+          "created": "2026-10-28T08:06:53Z",
+          "updated": "2026-11-04T06:48:07Z"
+        },
+        {
+          "number": 734,
+          "title": "[Bug]: IK returns success and zero position error outside the requested ToolPoseCriteria tolerance",
+          "url": "https://github.com/NVlabs/curobo/issues/734",
+          "comments": 0,
+          "created": "2026-10-28T06:41:18Z",
+          "updated": "2026-10-28T06:41:28Z"
+        },
+        {
+          "number": 732,
+          "title": "[Bug]: CUDA extensions built with --ftz/--fmad/--prec-div=false/--prec-sqrt=false crash with illegal memory access on RTX PRO 6000 Blackwell (sm_120)",
+          "url": "https://github.com/NVlabs/curobo/issues/732",
+          "comments": 0,
+          "created": "2026-10-19T07:10:07Z",
+          "updated": "2026-10-19T07:10:07Z"
+        },
+        {
+          "number": 720,
+          "title": "[Bug]: Module-scope TF32 writes leak across the test suite; can the library flag be opt-out?",
+          "url": "https://github.com/NVlabs/curobo/issues/720",
+          "comments": 0,
+          "created": "2026-09-02T00:24:36Z",
+          "updated": "2026-09-02T00:24:36Z"
+        },
+        {
+          "number": 717,
+          "title": "[Bug]: motion_planner.py doesn't fill good_solution from IK correctly when successful IK instances are insufficient",
+          "url": "https://github.com/NVlabs/curobo/issues/717",
+          "comments": 1,
+          "created": "2026-08-24T10:20:10Z",
+          "updated": "2026-08-24T10:23:24Z"
+        },
+        {
+          "number": 716,
+          "title": "L-BFGS kernel: 'too many resources requested for launch' on Blackwell (sm_120) — register pressure, not shared memory",
+          "url": "https://github.com/NVlabs/curobo/issues/716",
+          "comments": 0,
+          "created": "2026-08-23T04:47:51Z",
+          "updated": "2026-08-23T04:47:51Z"
+        },
+        {
+          "number": 712,
+          "title": "[Bug]: plan_cspace fails on a self-collision detour its own graph planner solves",
+          "url": "https://github.com/NVlabs/curobo/issues/712",
+          "comments": 0,
+          "created": "2026-08-19T17:02:36Z",
+          "updated": "2026-08-19T17:02:36Z"
+        },
+        {
+          "number": 711,
+          "title": "[Bug]: `MPCSolver.update_goal_tool_poses`: IK failure blocks the Cartesian goal update too, not just joint-position tracking",
+          "url": "https://github.com/NVlabs/curobo/issues/711",
+          "comments": 0,
+          "created": "2026-08-18T14:36:13Z",
+          "updated": "2026-08-18T14:36:13Z"
+        }
+      ]
+    },
+    {
+      "repo": "jingxixu/dynamic-grasping",
+      "url": "https://github.com/jingxixu/dynamic-grasping",
+      "stars": 100,
+      "forks": 12,
+      "open_issues_and_prs": 2,
+      "pushed_at": "2021-12-10T14:05:28Z",
+      "default_branch": "master",
+      "archived": false,
+      "selected_open_issues": [
+        {
+          "number": 4,
+          "title": "issues when python run_dynamic_with_motion.py",
+          "url": "https://github.com/jingxixu/dynamic-grasping/issues/4",
+          "comments": 0,
+          "created": "2024-06-29T03:44:42Z",
+          "updated": "2024-06-29T03:44:42Z"
+        },
+        {
+          "number": 2,
+          "title": "Error while doing gitman install",
+          "url": "https://github.com/jingxixu/dynamic-grasping/issues/2",
+          "comments": 0,
+          "created": "2022-03-27T06:25:12Z",
+          "updated": "2024-06-26T07:44:18Z"
+        }
+      ]
+    },
+    {
+      "repo": "BenBurgessLimerick/ManipulationOnTheMove",
+      "url": "https://github.com/BenBurgessLimerick/ManipulationOnTheMove",
+      "stars": 177,
+      "forks": 9,
+      "open_issues_and_prs": 2,
+      "pushed_at": "2023-05-30T10:46:33Z",
+      "default_branch": "main",
+      "archived": false,
+      "selected_open_issues": [
+        {
+          "number": 3,
+          "title": "Question about MotM Reacher trajectory design in your Reactive Mobile Manipulation On-The-Move paper",
+          "url": "https://github.com/BenBurgessLimerick/ManipulationOnTheMove/issues/3",
+          "comments": 0,
+          "created": "2026-06-01T02:35:05Z",
+          "updated": "2026-06-01T02:35:05Z"
+        },
+        {
+          "number": 2,
+          "title": "Is there any code in robotics-toolbox-python for demostration?",
+          "url": "https://github.com/BenBurgessLimerick/ManipulationOnTheMove/issues/2",
+          "comments": 1,
+          "created": "2024-05-23T04:34:09Z",
+          "updated": "2025-11-25T06:31:21Z"
+        }
+      ]
+    },
+    {
+      "repo": "robotology/react-control",
+      "url": "https://github.com/robotology/react-control",
+      "stars": 7,
+      "forks": 1,
+      "open_issues_and_prs": 0,
+      "pushed_at": "2024-12-13T11:26:27Z",
+      "default_branch": "master",
+      "license_metadata": "GPL-2.0",
+      "archived": false,
+      "selected_open_issues": []
+    },
+    {
+      "repo": "graspnet/graspnet-baseline",
+      "url": "https://github.com/graspnet/graspnet-baseline",
+      "stars": 1046,
+      "forks": 236,
+      "open_issues_and_prs": 28,
+      "pushed_at": "2025-02-17T17:54:09Z",
+      "default_branch": "main",
+      "license_metadata": "NOASSERTION",
+      "archived": false
+    },
+    {
+      "repo": "NVlabs/storm",
+      "url": "https://github.com/NVlabs/storm",
+      "stars": 252,
+      "forks": 43,
+      "open_issues_and_prs": 5,
+      "pushed_at": "2025-07-23T16:31:12Z",
+      "default_branch": "main",
+      "license_metadata": "NOASSERTION",
+      "archived": false
+    },
+    {
+      "repo": "royzhang12/Target-referenced-Reactive-Grasping-for-Dynamic-Objects",
+      "url": "https://github.com/royzhang12/Target-referenced-Reactive-Grasping-for-Dynamic-Objects",
+      "stars": 19,
+      "forks": 2,
+      "open_issues_and_prs": 0,
+      "pushed_at": "2023-08-15T17:06:16Z",
+      "default_branch": "main",
+      "license_metadata": "NOASSERTION",
+      "archived": false
+    },
+    {
+      "repo": "agilexrobotics/piper_ros",
+      "url": "https://github.com/agilexrobotics/piper_ros",
+      "stars": 370,
+      "forks": 127,
+      "open_issues_and_prs": 26,
+      "pushed_at": "2026-03-04T07:36:50Z",
+      "default_branch": "noetic",
+      "license_metadata": "MIT",
+      "archived": false
+    },
+    {
+      "repo": "agilexrobotics/piper_sdk",
+      "url": "https://github.com/agilexrobotics/piper_sdk",
+      "stars": 420,
+      "forks": 88,
+      "open_issues_and_prs": 48,
+      "pushed_at": "2026-10-14T03:07:10Z",
+      "default_branch": "master",
+      "license_metadata": "MIT",
+      "archived": false
+    }
+  ]
+}
